@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="fabicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <title>ArmRobotSimulation</title>
+</head>
+<body>
+    <script src="three.min.js"></script>
+    <script src="GLTFLoader.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script src="InverseKinematics.js"></script>
+    <div class="content"></div>
+    <div class="controler">
+        <div class="btnList">
+            <div class="btn" id="plusJ1">+J1</div>
+            <div class="btn" id="minusJ1">-J1</div>
+            <div class="btn" id="plusX">+X</div>
+            <div class="btn" id="minusX">-X</div>
+        </div>
+        <div class="btnList">
+            <div class="btn" id="plusJ2">+J2</div>
+            <div class="btn" id="minusJ2">-J2</div>
+            <div class="btn" id="plusY">+Y</div>
+            <div class="btn" id="minusY">-Y</div>
+        </div>
+        <div class="btnList">
+            <div class="btn" id="plusJ3">+J3</div>
+            <div class="btn" id="minusJ3">-J3</div>
+            <div class="btn" id="plusZ">+Z</div>
+            <div class="btn" id="minusZ">-Z</div>
+        </div>
+        <div class="btnList">
+            <div class="btn" id="plusJ4">+J4</div>
+            <div class="btn" id="minusJ4">-J4</div>
+            <div class="btn" id="plusRx">+Roll</div>
+            <div class="btn" id="minusRx">-Roll</div>
+        </div>
+        <div class="btnList">
+            <div class="btn" id="plusJ5">+J5</div>
+            <div class="btn" id="minusJ5">-J5</div>
+            <div class="btn" id="plusRy">+Pitch</div>
+            <div class="btn" id="minusRy">-Pitch</div>
+        </div>
+        <div class="btnList">
+            <div class="btn" id="plusJ6">+J6</div>
+            <div class="btn" id="minusJ6">-J6</div>
+            <div class="btn" id="plusRz">+Yaw</div>
+            <div class="btn" id="minusRz">-Yaw</div>
+        </div>
+    </div>
+    <script>
+        const theta = Math.PI/15;
+        let scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xdddddd);
+
+        const width = 750;
+        const height = 500;
+        let camera = new THREE.PerspectiveCamera(40, width/height, 1, 5000);
+        camera.position.y = 500;
+        camera.position.z = 2500;
+
+        renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize(width, height);
+        const content = document.querySelector('.content');
+        content.appendChild(renderer.domElement);
+
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        //controls.addEventListener('change', renderer);    // <-- 使うとwarningでる
+
+        const ambientlight = new THREE.AmbientLight(0x404040, 0.75);
+        scene.add(ambientlight);
+        const hemispherelight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.0);
+        scene.add(hemispherelight);
+
+        let gridSize = 2000;
+        let gridDivision = 10;
+        let grid = new THREE.GridHelper(gridSize, gridDivision);
+        scene.add(grid);
+
+        const base = new THREE.Group();
+        const link1 = new THREE.Group();
+        const link2 = new THREE.Group();
+        const link3 = new THREE.Group();
+        const link4 = new THREE.Group();
+        const link5 = new THREE.Group();
+        const link6 = new THREE.Group();
+
+        const material = new THREE.MeshLambertMaterial({color: 0xf8a900});
+        let loader = new THREE.GLTFLoader();
+        loader.load('FD-S3/base.gltf', function(gltf){
+            const mesh = MakeMeshFromGLTF(gltf, material);
+            base.add(mesh);
+            base.rotation.x -= Math.PI/2;
+        })
+        loader.load('FD-S3/link_1.gltf', function(gltf){
+            const mesh = MakeMeshFromGLTF(gltf, material);
+            link1.add(mesh);
+            base.add(link1);
+            link1.position.set(0,0,105);
+        })
+        loader.load('FD-S3/link_2.gltf', function(gltf){
+            const mesh = MakeMeshFromGLTF(gltf, material);
+            link2.add(mesh);
+            link1.add(link2);
+            link2.position.set(200,0,165);
+            link2.rotation.y -= 3*theta;    // 初期値
+        })
+        loader.load('FD-S3/link_3.gltf', function(gltf){
+            const mesh = MakeMeshFromGLTF(gltf, material);
+            link3.add(mesh);
+            link2.add(link3);
+            link3.position.set(0,0,350);
+            link3.rotation.y += 3*theta;    // 初期値
+        })
+        loader.load('FD-S3/link_4.gltf', function(gltf){
+            const mesh = MakeMeshFromGLTF(gltf, material);
+            link4.add(mesh);
+            link3.add(link4);
+            link4.position.set(400,0,65);
+        })
+        loader.load('FD-S3/link_5.gltf', function(gltf){
+            const mesh = MakeMeshFromGLTF(gltf, material);
+            link5.add(mesh);
+            link4.add(link5);
+            link5.position.set(0,0,0);
+            link5.rotation.y += Math.PI/2;    // 初期値
+        })
+        loader.load('FD-S3/link_6.gltf', function(gltf){
+            const mesh = MakeMeshFromGLTF(gltf, material);
+            link6.add(mesh);
+            link5.add(link6);
+            link6.position.set(90,0,0);
+            link6.rotation.y += Math.PI/2;
+        })
+
+        scene.add(base);
+
+        let ik = new InverseKinematics();
+        ik.setNowJointValue(link1.rotation.z,-link2.rotation.y,-link3.rotation.y,
+            link4.rotation.x,link5.rotation.y,link6.rotation.x);
+        let tgtMat = ik.CalcForwardKinematics();
+        let tgtPos = new THREE.Vector3().setFromMatrixPosition(tgtMat);
+        let jointDeg = ik.CalcInverseKinematics(tgtMat);
+
+        function tick() {
+            // レンダリング
+            renderer.render(scene, camera);
+            requestAnimationFrame(tick);
+        }
+
+        tick();
+
+        function MakeMeshFromGLTF(gltf, material){
+            const geometry = gltf.scene.children[0].geometry.clone();
+            const mesh = new THREE.Mesh(geometry, material);
+            return mesh;
+        }
+
+        // イベントハンドラ　///////////////////////////////
+
+        // 1軸回転　正方向
+        const plusJ1 = document.getElementById("plusJ1");
+        plusJ1.addEventListener('click', function(event){
+            link1.rotation.z += theta;
+            ik.setTheta1 = link1.rotation.z;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(plusJ1);
+        })
+
+        // 1軸回転　負方向
+        const minusJ1 = document.getElementById("minusJ1");
+        minusJ1.addEventListener('click', function(event){
+            link1.rotation.z -= theta;
+            ik.setTheta1 = link1.rotation.z;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(minusJ1);
+        })
+
+        // 2軸回転　正方向
+        const plusJ2 = document.getElementById("plusJ2");
+        plusJ2.addEventListener('click', function(event){
+            link2.rotation.y += theta;
+            ik.setTheta2 = link2.rotation.y;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(plusJ2);
+        })
+
+        // 2軸回転　負方向
+        const minusJ2 = document.getElementById("minusJ2");
+        minusJ2.addEventListener('click', function(event){
+            link2.rotation.y -= theta;
+            ik.setTheta2 = link2.rotation.y;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(minusJ2);
+        })
+
+        // 3軸回転　正方向
+        const plusJ3 = document.getElementById("plusJ3");
+        plusJ3.addEventListener('click', function(event){
+            link3.rotation.y += theta;
+            ik.setTheta3 = link3.rotation.y;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(plusJ3);
+        })
+
+        // 3軸回転　負方向
+        const minusJ3 = document.getElementById("minusJ3");
+        minusJ3.addEventListener('click', function(event){
+            link3.rotation.y -= theta;
+            ik.setTheta3 = link3.rotation.y;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(minusJ3);
+        })
+
+        // 4軸回転　正方向
+        const plusJ4 = document.getElementById("plusJ4");
+        plusJ4.addEventListener('click', function(event){
+            link4.rotation.x += theta;
+            ik.setTheta4 = link4.rotation.x;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(plusJ4);
+        })
+
+        // 4軸回転　負方向
+        const minusJ4 = document.getElementById("minusJ4");
+        minusJ4.addEventListener('click', function(event){
+            link4.rotation.x -= theta;
+            ik.setTheta4 = link4.rotation.x;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(minusJ4);
+        })
+
+        // 5軸回転　正方向
+        const plusJ5 = document.getElementById("plusJ5");
+        plusJ5.addEventListener('click', function(event){
+            link5.rotation.y += theta;
+            ik.setTheta5 = link5.rotation.y;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(plusJ5);
+        })
+
+        // 5軸回転　負方向
+        const minusJ5 = document.getElementById("minusJ5");
+        minusJ5.addEventListener('click', function(event){
+            link5.rotation.y -= theta;
+            ik.setTheta5 = link5.rotation.y;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(minusJ5);
+        })
+
+        // 6軸回転　正方向
+        const plusJ6 = document.getElementById("plusJ6");
+        plusJ6.addEventListener('click', function(event){
+            link6.rotation.x += theta;
+            ik.setTheta6 = link6.rotation.x;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(plusJ6);
+        })
+
+        // 6軸回転　負方向
+        const minusJ6 = document.getElementById("minusJ6");
+        minusJ6.addEventListener('click', function(event){
+            link6.rotation.x -= theta;
+            ik.setTheta6 = link6.rotation.x;
+            tgtMat = ik.CalcForwardKinematics();
+            renderer.render(scene, camera);
+            ViewClicking(minusJ6);
+        })
+
+        // x正方向
+        const plusX = document.getElementById("plusX");
+        plusX.addEventListener('click', function(event){
+            let aa = tgtMat.clone();
+            let Deg0 = ik.CalcInverseKinematics(tgtMat);
+            tgtMat.elements[14] += 10;  // <= elements[12]がx座標地のはずだがなぜか[14]でうまくいく
+            let bb = tgtMat.clone();
+            for(let j = 0;j<16;j++)
+            {
+                let k = bb.elements[j] - aa.elements[j];
+                //console.log(j,k);
+            }
+            let Deg1 = ik.CalcInverseKinematics(tgtMat);
+            let Deg2 = [0,0,0,0,0,0];
+            for(let i=0;i<6;i++)
+            {
+                let k = Deg1[i]-Deg0[i];
+                Deg2[i] = k;
+            }
+            link1.rotation.z += Deg2[0];
+            link2.rotation.y -= Deg2[1];
+            link3.rotation.y -= Deg2[2];
+            link4.rotation.x += Deg2[3];
+            link5.rotation.y += Deg2[4];
+            link6.rotation.x += Deg2[5];
+            renderer.render(scene, camera);
+        })
+
+        // x負方向
+        const minusX = document.getElementById("minusX");
+        minusX.addEventListener('click', function(event){
+            let Deg0 = ik.CalcInverseKinematics(tgtMat);
+            tgtMat.elements[14] -= 10;  // <= elements[12]がx座標地のはずだがなぜか[14]でうまくいく
+            let Deg1 = ik.CalcInverseKinematics(tgtMat);
+            let Deg2 = [0,0,0,0,0,0];
+            for(let i=0;i<6;i++)
+            {
+                let k = Deg1[i]-Deg0[i];
+                Deg2[i] = k;
+            }
+            link1.rotation.z += Deg2[0];
+            link2.rotation.y -= Deg2[1];
+            link3.rotation.y -= Deg2[2];
+            link4.rotation.x += Deg2[3];
+            link5.rotation.y += Deg2[4];
+            link6.rotation.x += Deg2[5];
+            renderer.render(scene, camera);
+        })
+
+        // y正方向
+        const plusY = document.getElementById("plusY");
+        plusY.addEventListener('click', function(event){
+            let Deg0 = ik.CalcInverseKinematics(tgtMat);
+            tgtMat.elements[13] += 50;
+            let Deg1 = ik.CalcInverseKinematics(tgtMat);
+            let Deg2 = [0,0,0,0,0,0];
+            for(let i=0;i<6;i++)
+            {
+                let k = Deg1[i]-Deg0[i];
+                Deg2[i] = k;
+            }
+            link1.rotation.z += Deg2[0];
+            link2.rotation.y -= Deg2[1];
+            link3.rotation.y -= Deg2[2];
+            link4.rotation.x += Deg2[3];
+            link5.rotation.y += Deg2[4];
+            link6.rotation.x += Deg2[5];
+            renderer.render(scene, camera);
+        })
+
+        // y負方向
+        const minusY = document.getElementById("minusY");
+        minusY.addEventListener('click', function(event){
+            let Deg0 = ik.CalcInverseKinematics(tgtMat);
+            tgtMat.elements[13] -= 50;
+            let Deg1 = ik.CalcInverseKinematics(tgtMat);
+            let Deg2 = [0,0,0,0,0,0];
+            for(let i=0;i<6;i++)
+            {
+                let k = Deg1[i]-Deg0[i];
+                Deg2[i] = k;
+            }
+            link1.rotation.z += Deg2[0];
+            link2.rotation.y -= Deg2[1];
+            link3.rotation.y -= Deg2[2];
+            link4.rotation.x += Deg2[3];
+            link5.rotation.y += Deg2[4];
+            link6.rotation.x += Deg2[5];
+            renderer.render(scene, camera);
+        })
+
+        // z正方向
+        const plusZ = document.getElementById("plusZ");
+        plusZ.addEventListener('click', function(event){
+            let Deg0 = ik.CalcInverseKinematics(tgtMat);
+            tgtMat.elements[12] += 10;  // <= elements[14]がz座標地のはずだがなぜか[12]でうまくいく
+            let Deg1 = ik.CalcInverseKinematics(tgtMat);
+            let Deg2 = [0,0,0,0,0,0];
+            for(let i=0;i<6;i++)
+            {
+                let k = Deg1[i]-Deg0[i];
+                Deg2[i] = k;
+            }
+            link1.rotation.z += Deg2[0];
+            link2.rotation.y -= Deg2[1];
+            link3.rotation.y -= Deg2[2];
+            link4.rotation.x += Deg2[3];
+            link5.rotation.y += Deg2[4];
+            link6.rotation.x += Deg2[5];
+            renderer.render(scene, camera);
+        })
+
+        // z負方向
+        const minusZ = document.getElementById("minusZ");
+        minusZ.addEventListener('click', function(event){
+            let Deg0 = ik.CalcInverseKinematics(tgtMat);
+            tgtMat.elements[12] -= 10;  // <= elements[14]がz座標地のはずだがなぜか[14]でうまくいく
+            let Deg1 = ik.CalcInverseKinematics(tgtMat);
+            let Deg2 = [0,0,0,0,0,0];
+            for(let i=0;i<6;i++)
+            {
+                let k = Deg1[i]-Deg0[i];
+                Deg2[i] = k;
+            }
+            link1.rotation.z += Deg2[0];
+            link2.rotation.y -= Deg2[1];
+            link3.rotation.y -= Deg2[2];
+            link4.rotation.x += Deg2[3];
+            link5.rotation.y += Deg2[4];
+            link6.rotation.x += Deg2[5];
+            renderer.render(scene, camera);
+        })
+
+
+        function ViewClicking(target){
+            target.addEventListener('mousedown', (e)=>{
+                target.style.background = "#ffaaaa";
+            })
+            target.addEventListener('mouseup', (e)=>{
+                target.style.background = "#dddddd";
+            })
+        }
+
+    </script>
+</body>
+</html>
